@@ -1,0 +1,85 @@
+# fridged configuration — example.
+#
+# Copy to /etc/fridged/config.toml and edit. Every key below is set to its
+# default value, so you only need to keep the ones you change; an empty file is
+# a valid configuration. Unknown keys are rejected, to catch typos.
+#
+# Durations are whole seconds (keys ending in `_secs`), temperatures °C.
+# A test loads this file: it must stay valid and in sync with the defaults.
+
+[sensor]
+# MCP9808 on /dev/i2c-<i2c_bus>. Bus 1 is the one on the GPIO header
+# (enable it with `sudo raspi-config nonint do_i2c 0`).
+i2c_bus = 1
+# 0x18..=0x1F, set by the A0-A2 pins. 0x18 with all three low.
+address = 0x18
+# One reading, and one control decision, every this many seconds.
+read_interval_secs = 15
+
+[relay]
+# BCM numbering. Not 2 or 3: those are the sensor's I2C pins.
+# 26 = physical pin 37, with the relay's - on GND at pin 39.
+gpio_pin = 26
+# true if the relay switches on when its input is LOW (many electromechanical
+# relay boards). A DC-input solid-state relay is active high: false.
+active_low = false
+# Compressor protections. They always apply, whatever the controller asks for.
+# Wait at least this long after stopping before restarting: lets the system
+# pressure equalize. Restarting against residual pressure damages a compressor.
+min_off_time_secs = 300
+# Once started, run at least this long.
+min_on_time_secs = 120
+# Forced stop after this long running continuously: in a healthy fridge it
+# points to a fault (door open, refrigerant loss), not to a warm load.
+max_continuous_on_secs = 7200
+
+[control]
+# Hysteresis band: compressor ON above target_max, OFF at or below target_min.
+# Beer storage defaults. Allowed range 0-25 °C, band at least 0.5 °C wide.
+# This is the default: with uploading enabled, a band written to Firestore at
+# devices/<device_id>/settings/current (fields targetMin, targetMax) overrides
+# it within one upload round, and is kept across restarts. Delete that
+# document to come back to these values.
+target_min = 8.0
+target_max = 11.0
+# No valid reading for this long → SAFE mode (blind duty cycle below).
+# At least twice read_interval_secs.
+sensor_timeout_secs = 60
+# SAFE mode duty cycle. Kept low on purpose: overcooling freezes and bursts
+# bottles, running a little warm does not. Each phase must be at least as
+# long as the matching relay protection above.
+safe_on_secs = 600
+safe_off_secs = 2400
+# A stop after relay.max_continuous_on_secs is a rest: after min_off_time the
+# compressor starts again if still needed. This many rests in a row without
+# reaching target_min raise the overrun fault (door open, refrigerant loss).
+overrun_after_stops = 3
+
+[spool]
+# Samples are appended here and removed once uploaded.
+path = "/var/lib/fridged/spool.jsonl"
+# Samples older than this are dropped, uploaded or not.
+max_spool_days = 7
+
+[firestore]
+# GCP project. Leave unset to disable uploading: the daemon still regulates
+# the temperature and keeps samples in the spool.
+# project_id = "my-gcp-project"
+# Firestore database id: "(default)" unless the project has a dedicated one.
+database = "(default)"
+# Service-account JSON key. Keep it out of version control. Under systemd the
+# key lives in /etc/fridged/service-account.json (root-only) and the service
+# reads the private copy systemd hands it here (LoadCredential=).
+credentials_path = "/run/credentials/fridged.service/service-account.json"
+# Document id under which this fridge publishes. No '/'.
+device_id = "fridge"
+# Every this many seconds one sample of the current state is recorded and
+# uploaded: the history in Firestore. The compressor is still controlled every
+# sensor.read_interval_secs.
+upload_interval_secs = 300
+
+[healthcheck]
+# healthchecks.io ping URL, pinged after every upload round ("/fail" appended
+# when it fails). Leave unset to disable. Anyone with the URL can ping the
+# check: keep the real one out of version control.
+# ping_url = "https://hc-ping.com/your-check-uuid"

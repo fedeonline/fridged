@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["fridged", "spike"]
+# The spike stays in the workspace on purpose: it shares Cargo.lock with the
+# daemon, so it validates on ARMv6 exactly the versions that will ship.
+# Re-run it whenever dependencies change.
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+
+# Versions validated on ARMv6 by the spike. Declared once so the spike and
+# the daemon cannot drift apart: the spike only proves something about the
+# versions the daemon actually uses.
+[workspace.dependencies]
+ureq = "3.4.2"
+rppal = "0.22.1"
+
+# Profile aimed at the Pi Zero: 512 MB of RAM and a slow SD card.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+# A panic in the control thread must kill the process and let systemd restart
+# it, rather than leave the relay stuck in whatever state it was in.
+panic = "abort"
+strip = true

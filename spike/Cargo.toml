@@ -1,0 +1,16 @@
+[package]
+name = "spike"
+version = "0.1.0"
+description = "Toolchain validation probe for the Pi Zero (ARMv6): TLS, GPIO, I2C"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# Blocking HTTP with rustls: no OpenSSL to cross-compile, few dependencies.
+ureq.workspace = true
+
+# GPIO and I2C for the BCM2835. Linux-only, so it must not be pulled in when
+# building on the development machine.
+[target.'cfg(target_os = "linux")'.dependencies]
+rppal.workspace = true

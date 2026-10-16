@@ -1,0 +1,6 @@
+# Image pinned to the digest actually validated in Phase 0.
+# `cross` installed from git uses the moving `:main` tag: without a pin, an
+# image update could silently reintroduce non-ARMv6 code without us noticing.
+# After changing it, ALWAYS re-run scripts/verify-armv6.sh.
+[target.arm-unknown-linux-musleabihf]
+image = "ghcr.io/cross-rs/arm-unknown-linux-musleabihf@sha256:19cc0f4e4bb38574bf6efeba40c74aefd189bfc9769966763ff1c9befe9b865b"

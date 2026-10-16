@@ -1,0 +1,17 @@
+/target
+/spike/target
+**/*.rs.bk
+
+# Never commit credentials or local state
+service-account.json
+*.pem
+*.key
+/deploy/config.toml
+spool.jsonl
+
+.DS_Store
+.idea/
+.vscode/
+
+# Local working notes (installation details), never published
+PROGRESS.md

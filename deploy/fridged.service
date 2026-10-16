@@ -1,0 +1,69 @@
+# fridged: refrigerator temperature controller.
+# Installed by deploy/install.sh as /etc/systemd/system/fridged.service.
+
+[Unit]
+Description=fridged refrigerator temperature controller
+# No network dependency on purpose: regulation must start at boot whether or
+# not the network is up. Uploads wait for the network and a synchronized clock
+# on their own.
+
+[Service]
+Type=notify
+ExecStartPre=/usr/local/bin/fridged --config /etc/fridged/config.toml --check
+ExecStart=/usr/local/bin/fridged --config /etc/fridged/config.toml
+# Runs after *every* stop, crashes, SIGKILL and OOM kills included: whatever
+# happened to the daemon, the compressor does not stay on unsupervised. Pin and
+# polarity come from the same config file.
+ExecStopPost=/usr/local/bin/fridged --config /etc/fridged/config.toml --relay-off
+
+Restart=always
+RestartSec=5
+# 64 = bad command line, 78 = bad configuration: restarting cannot fix them.
+RestartPreventExitStatus=64 78
+# The control loop pings every tick (15 s by default).
+WatchdogSec=60
+# Enough for an upload in flight (30 s timeout) to finish after the relay is OFF.
+TimeoutStopSec=45
+
+# A throwaway system user, with access to the GPIO and I2C devices only.
+DynamicUser=yes
+SupplementaryGroups=gpio i2c
+StateDirectory=fridged
+# The service-account key stays root-only on disk (0600); systemd hands the
+# service a private copy at /run/credentials/fridged.service/service-account.json.
+# Without the key the service must still start and regulate: SetCredential is
+# the fallback when the file is missing (`{}`: upload disabled, logged).
+LoadCredential=service-account.json:/etc/fridged/service-account.json
+SetCredential=service-account.json:{}
+
+# Hardening. Not set on purpose:
+# - ProtectClock: it also filters adjtimex(2), used read-only to tell whether
+#   NTP has synchronized the clock.
+# - SystemCallFilter: not worth the risk of an unexpected kill of a controller.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+DevicePolicy=closed
+# rppal maps the GPIO registers through /dev/gpiomem and also opens the
+# /dev/gpiochip* character devices.
+DeviceAllow=/dev/gpiomem rw
+DeviceAllow=char-gpiochip rw
+# Every I2C bus, whichever sensor.i2c_bus the configuration names.
+DeviceAllow=char-i2c rw
+
+[Install]
+WantedBy=multi-user.target

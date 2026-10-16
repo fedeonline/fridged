@@ -1,0 +1,26 @@
+[package]
+name = "fridged"
+version = "0.1.0"
+description = "Refrigerator temperature controller for the Raspberry Pi Zero (ARMv6)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# Dependencies are added by the task that needs them, after checking that they
+# cross-compile for ARMv6. Shared ones come from [workspace.dependencies].
+[dependencies]
+ureq.workspace = true
+base64 = "0.23.1"
+lexopt = "0.3.2"
+libc = "0.2.190"
+log = "0.4.34"
+ring = "0.17.14"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+signal-hook = { version = "0.4.5", default-features = false }
+thiserror = "2.0.21"
+toml = { version = "1.1.8", default-features = false, features = ["parse", "serde", "std"] }
+
+# GPIO and I2C for the BCM2835; Linux only, so macOS builds do without it.
+[target.'cfg(target_os = "linux")'.dependencies]
+rppal.workspace = true

@@ -1,0 +1,14 @@
+# Raspberry Pi Zero / Zero W = BCM2835, ARM1176JZF-S core (ARMv6Z).
+# No NEON, no movw/movt (those are ARMv6T2+), no sdiv/udiv.
+#
+# The `arm-unknown-linux-musleabihf` Rust target is already ARMv6 + hardfloat
+# and produces a static binary: no dependency on the Pi's glibc.
+# `target-cpu` is not strictly required (without it the generated code is still
+# free of post-v6 instructions — verified) but it lets LLVM schedule for the
+# actual core. See scripts/verify-armv6.sh for the automated check.
+[target.arm-unknown-linux-musleabihf]
+rustflags = ["-C", "target-cpu=arm1176jzf-s"]
+
+[alias]
+# Shortcut: `cargo pi --release` (note: native build, not through cross)
+pi = "build --target arm-unknown-linux-musleabihf"
