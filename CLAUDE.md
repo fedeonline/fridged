@@ -1,13 +1,15 @@
 # CLAUDE.md
 
 **Before anything else, read `PROGRESS.md` if it exists**: it holds the current phase,
-the next task, decisions already made, and open blockers. It is a local working file,
-deliberately kept out of the public repository (it holds details of the actual
-installation). Work proceeds in interruptible phases and the state lives there, not in the
-conversation.
+the next task, decisions already made, and open blockers. Work proceeds in interruptible
+phases and the state lives there, not in the conversation.
 
-After each completed task: tick the checkbox in `PROGRESS.md`, add a line to the session
-log, and commit it together with the code.
+`PROGRESS.md` is a **local file, ignored by git and never published**: it holds details
+of the actual installation (network, accounts, paths). Never add it to a commit, and never
+copy such details into tracked files.
+
+After each completed task: tick the checkbox in `PROGRESS.md`, add a line to its session
+log, and commit the code. Commits use the author configured in this repository.
 
 ## What this project is
 
