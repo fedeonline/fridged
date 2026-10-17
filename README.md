@@ -108,7 +108,8 @@ sudo ./install.sh fridged config.toml fridged.service [service-account.json]
 
 The installer is idempotent. It installs the binary and the systemd unit (dynamic user,
 access to the GPIO and I²C devices only), validates the configuration, enables I²C, makes
-the firmware hold the relay OFF at boot, and starts the service. The service-account key is
+the firmware hold the relay OFF at boot, keeps the journal across reboots, turns Wi-Fi
+power save off (it can leave the Zero W offline until a reboot), and starts the service. The service-account key is
 stored root-only and handed to the service through systemd credentials.
 
 Day-to-day:

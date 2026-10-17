@@ -57,6 +57,32 @@ if ! grep -qxF "$line" "$BOOT"; then
     reboot_needed=yes
 fi
 
+echo "==> persistent journal"
+# Raspberry Pi OS keeps the journal in RAM: after a reboot there is nothing left
+# to explain why the daemon misbehaved. The "90-" prefix overrides its
+# 40-rpi-volatile-storage.conf. Writes are a few KB per hour, capped at 50 MB.
+JOURNALD=/etc/systemd/journald.conf.d/90-persistent.conf
+journald_conf=$'[Journal]\nStorage=persistent\nSystemMaxUse=50M'
+if [[ ! -f $JOURNALD || $(<"$JOURNALD") != "$journald_conf" ]]; then
+    install -d -m 0755 "$(dirname "$JOURNALD")"
+    printf '%s\n' "$journald_conf" > "$JOURNALD"
+    systemctl restart systemd-journald
+    journalctl --flush
+    echo "    journal now kept in /var/log/journal"
+fi
+
+echo "==> Wi-Fi power save off"
+# With power save on, the Zero W's Wi-Fi (brcmfmac) can drop off the network and
+# never come back until a reboot: uploads stop while the fridge keeps running.
+NM_POWERSAVE=/etc/NetworkManager/conf.d/wifi-powersave-off.conf
+powersave_conf=$'[connection]\nwifi.powersave = 2'
+if [[ -d /etc/NetworkManager && ( ! -f $NM_POWERSAVE || $(<"$NM_POWERSAVE") != "$powersave_conf" ) ]]; then
+    printf '%s\n' "$powersave_conf" > "$NM_POWERSAVE"
+    # NetworkManager applies it from the next connection; turn it off right away too.
+    /sbin/iw dev wlan0 set power_save off 2>/dev/null || true
+    echo "    power save disabled"
+fi
+
 echo "==> service"
 install -m 0644 "$UNIT" /etc/systemd/system/fridged.service
 systemctl daemon-reload
